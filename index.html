@@ -2,637 +2,515 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Optimization: Prevent zooming and handle mobile scaling -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Alphabet Place Value Trainer</title>
+    <title>Canvas Alphabet Trainer</title>
     <style>
-        :root {
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --bg: #f3f4f6;
-            --card-bg: #ffffff;
-            --text: #1f2937;
-            --text-light: #6b7280;
-            --success: #22c55e;
-            --error: #ef4444;
-        }
-
-        html {
-            /* Optimization: Prevent pull-to-refresh which ruins web apps */
-            overscroll-behavior: none; 
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            /* Optimization: dvh handles mobile address bars better than vh */
-            min-height: 100dvh; 
             margin: 0;
-            position: relative;
-            /* Optimization: Fix sticky tap highlight on mobile */
-            -webkit-tap-highlight-color: transparent; 
+            overflow: hidden; /* Prevent scrolling */
+            background-color: #F9F7F1; /* Warm paper background */
+            touch-action: none; /* Prevent browser zooming/swiping */
+            font-family: 'Courier New', Courier, monospace; /* Monospace for technical feel, or system if unavailable */
         }
 
-        /* Utility */
-        .hidden { display: none !important; }
-
-        /* Timer Styles */
-        .timer-container {
+        /* Hidden input for keyboard on mobile */
+        #hidden-input {
             position: absolute;
-            top: 15px;
-            left: 15px;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
+            opacity: 0;
+            top: -1000px;
+            left: -1000px; 
+            font-size: 16px; 
         }
 
-        .timer-svg {
-            transform: rotate(-90deg);
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-        }
-
-        .timer-circle-bg {
-            fill: none;
-            stroke: #e5e7eb;
-            stroke-width: 5;
-        }
-
-        .timer-circle-progress {
-            fill: none;
-            stroke: var(--primary);
-            stroke-width: 5;
-            stroke-linecap: round;
-            stroke-dasharray: 113;
-            stroke-dashoffset: 0;
-            transition: stroke-dashoffset 0.05s linear, stroke 0.2s;
-        }
-
-        .timer-text {
-            position: absolute;
-            font-weight: 800;
-            color: var(--text-light);
-            font-size: 1.2rem;
-        }
-
-        /* Main Card */
-        .container {
-            background-color: var(--card-bg);
-            padding: 2rem;
-            border-radius: 1.5rem;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            width: 90%;
-            max-width: 360px;
-            transition: transform 0.2s;
-            /* Optimization: Ensure it fits on small SE screens */
-            box-sizing: border-box; 
-        }
-
-        h1 {
-            font-size: 1.5rem;
-            color: var(--text);
-            margin: 0 0 0.5rem 0;
-            font-weight: 700;
-        }
-        
-        p.subtitle {
-            color: var(--text-light);
-            margin-bottom: 1.5rem;
-            font-size: 0.9rem;
-        }
-
-        /* Stats */
-        .stats-container {
-            display: flex;
-            justify-content: space-between;
-            background-color: #f9fafb;
-            padding: 0.75rem 1rem;
-            border-radius: 1rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid #e5e7eb;
-        }
-
-        .stat-box {
+            pointer-events: none;
             display: flex;
             flex-direction: column;
-            align-items: center;
-        }
-
-        .stat-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-light);
-            font-weight: 600;
-        }
-
-        .stat-value {
-            font-weight: 800;
-            font-size: 1.25rem;
-            color: var(--primary);
-        }
-
-        /* Letter Display - Fluid Sizing */
-        .letter-display {
-            /* Optimization: clamp scales font between 4rem and 8rem based on screen width */
-            font-size: clamp(5rem, 20vw, 8rem); 
-            line-height: 1;
-            font-weight: 800;
-            margin: 0.5rem 0 1.5rem 0;
-            color: var(--text);
-            height: clamp(80px, 20vh, 140px);
-            display: flex;
             justify-content: center;
             align-items: center;
-            transition: color 0.2s, transform 0.2s;
-            user-select: none;
         }
 
-        /* Input */
-        .input-group {
-            position: relative;
-            margin-bottom: 1rem;
-        }
-
-        input[type="number"] {
-            width: 100%;
-            padding: 1rem;
-            font-size: 2rem;
-            font-weight: 700;
-            text-align: center;
-            border: 3px solid #e5e7eb;
-            border-radius: 1rem;
-            outline: none;
-            box-sizing: border-box;
-            color: var(--text);
-            transition: border-color 0.2s;
-            /* Optimization: Prevent iOS zoom on focus (needs 16px+ technically, but scale handled via meta) */
-            background: #fff; 
-        }
-
-        input[type="number"]:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-        }
-
-        /* Button */
         .btn {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 1rem;
-            border-radius: 1rem;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            transition: background 0.2s, transform 0.1s;
-            /* Optimization: Improve touch target */
-            min-height: 54px; 
-            touch-action: manipulation;
-        }
-
-        .btn:active { transform: scale(0.96); }
-
-        .message {
-            min-height: 1.5rem;
-            margin-top: 1rem;
-            font-weight: 600;
-            font-size: 0.95rem;
-            white-space: pre-wrap;
-        }
-
-        /* Hint Button */
-        .hint-btn {
-            background: none;
-            border: none;
-            color: var(--text-light);
-            font-size: 0.9rem;
-            cursor: pointer;
-            margin-top: 1rem;
-            padding: 0.5rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        /* Start Screen Specific */
-        .instruction-list {
-            text-align: left;
-            margin: 1.5rem 0;
-            padding: 0;
-            list-style: none;
-            display: inline-block;
-        }
-        
-        .instruction-list li {
-            margin-bottom: 0.8rem;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        /* Animations */
-        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
-        .bounce { animation: bounce 0.5s; }
-
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
-
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-            40% {transform: translateY(-20px);}
-            60% {transform: translateY(-10px);}
-        }
-
-        /* Modal */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(4px);
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-
-        .modal-overlay.show { opacity: 1; }
-        
-        .modal-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 1.5rem;
-            text-align: center;
-            width: 85%;
-            max-width: 320px;
-            transform: scale(0.9);
-            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        
-        .modal-overlay.show .modal-content { transform: scale(1); }
-        
-        .final-score-value {
-            font-size: 4rem;
+            pointer-events: auto;
+            background-color: #2D2D2D; /* Dark Charcoal */
+            color: #F9F7F1;
+            border: 3px solid #2D2D2D;
+            padding: 1rem 2.5rem;
+            border-radius: 0; /* Sharp edges */
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 1.2rem;
             font-weight: 800;
-            color: var(--primary);
-            line-height: 1;
-            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 6px 6px 0px rgba(0,0,0,0.15); /* Hard shadow */
+            transition: transform 0.1s, box-shadow 0.1s;
+            display: none;
+            margin-top: 220px;
         }
-
-        /* --- CRITICAL MOBILE OPTIMIZATIONS --- */
         
-        /* 1. Handling Landscape or Keyboard Open State */
+        .btn:active { 
+            transform: translate(2px, 2px);
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.15);
+        }
+        
+        .btn.visible { display: block; }
+        
         @media (max-height: 600px) {
-            .container {
-                padding: 1rem;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-            }
-            .letter-display {
-                font-size: 3rem; /* Shrink drastically */
-                height: 60px;
-                margin: 0.2rem 0;
-            }
-            h1 { font-size: 1.1rem; margin-bottom: 0; }
-            .subtitle { display: none; /* Hide non-essential */ }
-            .stats-container { margin-bottom: 0.5rem; padding: 0.5rem; }
-            .message { min-height: 1.2rem; margin-top: 0.5rem; }
-            .hint-btn { margin-top: 0.5rem; }
-            .timer-container {
-                top: 5px; left: 5px; width: 40px; height: 40px;
-            }
+            .btn { margin-top: 160px; padding: 0.8rem 1.5rem; }
         }
     </style>
 </head>
 <body>
 
-<!-- Start Screen -->
-<div id="start-screen" class="container">
-    <h1>Alphabet Mastery</h1>
-    <p class="subtitle">A=1, B=2 ... Z=26</p>
-    
-    <div style="margin: 1rem 0;">
-        <span style="font-size: 3rem; display: block; margin-bottom: 0.5rem;">🧠</span>
-        <ul class="instruction-list">
-            <li>⏱️ <strong>3 Seconds</strong> / letter</li>
-            <li>🔥 Build your <strong>Streak</strong></li>
-            <li>💡 Use <strong>Hints</strong> if stuck</li>
-        </ul>
+    <canvas id="gameCanvas"></canvas>
+    <input type="number" id="hidden-input" pattern="[0-9]*" inputmode="numeric">
+    <div id="ui-layer">
+        <button id="main-btn" class="btn">START</button>
     </div>
-
-    <button class="btn" onclick="startGame()">Start Training</button>
-</div>
-
-<!-- Timer Component -->
-<div id="timer-ui" class="timer-container hidden">
-    <svg class="timer-svg" viewBox="0 0 40 40">
-        <circle class="timer-circle-bg" cx="20" cy="20" r="18"></circle>
-        <circle id="timer-progress" class="timer-circle-progress" cx="20" cy="20" r="18"></circle>
-    </svg>
-    <span id="timer-text" class="timer-text">3</span>
-</div>
-
-<!-- Game Over Modal -->
-<div id="game-over-modal" class="modal-overlay">
-    <div class="modal-content">
-        <h2>Time's Up!</h2>
-        <div style="color:var(--text-light); margin-bottom:0.5rem;">Final Score</div>
-        <div id="final-score-display" class="final-score-value">0</div>
-        <button id="restart-btn" class="btn" onclick="restartGame()">Play Again</button>
-    </div>
-</div>
-
-<!-- Game Interface -->
-<div class="container hidden" id="game-container">
-    <h1>Letter Trainer</h1>
-    <p class="subtitle">Speed Drill: 3 seconds!</p>
-    
-    <div class="stats-container">
-        <div class="stat-box">
-            <span class="stat-label">Streak</span>
-            <span id="streak" class="stat-value">0</span>
-        </div>
-        <div class="stat-box">
-            <span class="stat-label">Best</span>
-            <span id="high-score" class="stat-value">0</span>
-        </div>
-    </div>
-
-    <div id="letter-display" class="letter-display">A</div>
-
-    <div class="input-group">
-        <!-- pattern="[0-9]*" triggers numeric keypad on iOS -->
-        <input type="number" id="user-input" placeholder="?" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
-    </div>
-    
-    <button class="btn" onclick="checkAnswer()">Submit</button>
-    
-    <div id="message" class="message"></div>
-    
-    <button class="hint-btn" onclick="showHint()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-        Need a hint?
-    </button>
-</div>
 
 <script>
-    // Game State
-    let currentLetter = '';
+    /**
+     * CONFIGURATION
+     */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const hiddenInput = document.getElementById('hidden-input');
+    const mainBtn = document.getElementById('main-btn');
+
+    // Artistic Palette
+    const COLORS = {
+        bg: '#F9F7F1',      // Warm White
+        card: '#FFFFFF',    // Pure White
+        ink: '#2D2D2D',     // Charcoal (Text/Outlines)
+        accent: '#FF6B6B',  // Coral Red (Timer/Highlights)
+        success: '#4ECDC4', // Teal
+        error: '#FF6B6B',   // Red
+        grid: '#E5E0D8'     // Subtle Grid
+    };
+
+    const STATE = { MENU: 0, PLAYING: 1, GAMEOVER: 2 };
+
+    let gameState = STATE.MENU;
+    let width, height, dpr;
+    
+    // Gameplay
+    let currentLetter = 'A';
     let currentStreak = 0;
-    let highScore = 0;
-    let isProcessing = false;
+    let highScore = parseInt(localStorage.getItem('canvas-alpha-score') || '0');
+    let timeLeft = 3000;
+    const TIME_LIMIT = 3000;
+    let lastTime = 0;
+    let messageText = "";
+    let messageColor = COLORS.ink;
+    let letterScale = 1;
     
-    // Timer State
-    const TIME_LIMIT_MS = 3000;
-    let timerInterval;
-    let timeLeft = TIME_LIMIT_MS;
+    // Visual Elements
+    let particles = [];
+    let backgroundElements = [];
 
-    // DOM Elements
-    const startScreen = document.getElementById('start-screen');
-    const gameContainer = document.getElementById('game-container');
-    const timerUI = document.getElementById('timer-ui');
-    
-    const letterDisplay = document.getElementById('letter-display');
-    const userInput = document.getElementById('user-input');
-    const messageEl = document.getElementById('message');
-    const streakEl = document.getElementById('streak');
-    const highScoreEl = document.getElementById('high-score');
-    const container = document.getElementById('game-container');
-    const timerPath = document.getElementById('timer-progress');
-    const timerText = document.getElementById('timer-text');
-    
-    // Modal Elements
-    const modal = document.getElementById('game-over-modal');
-    const restartBtn = document.getElementById('restart-btn');
-    const finalScoreDisplay = document.getElementById('final-score-display');
-
-    // Load high score
-    const savedScore = localStorage.getItem('alphabet-high-score');
-    if (savedScore) {
-        highScore = parseInt(savedScore);
-        highScoreEl.innerText = highScore;
+    /**
+     * INIT & RESIZE
+     */
+    function init() {
+        resize();
+        window.addEventListener('resize', resize);
+        
+        // Initialize Background Art Elements
+        for(let i=0; i<8; i++) {
+            backgroundElements.push({
+                char: Math.random() > 0.5 ? String.fromCharCode(65 + Math.floor(Math.random()*26)) : Math.floor(Math.random()*26).toString(),
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: (Math.random() - 0.5) * 0.2,
+                vy: (Math.random() - 0.5) * 0.2,
+                size: 50 + Math.random() * 150,
+                rotation: Math.random() * Math.PI * 2,
+                vRot: (Math.random() - 0.5) * 0.002,
+                opacity: 0.03 + Math.random() * 0.05
+            });
+        }
+        
+        requestAnimationFrame(loop);
     }
 
-    // Input Event Listeners
-    userInput.addEventListener("keypress", function(event) {
-        if (event.key === "Enter") {
-            checkAnswer();
+    function resize() {
+        dpr = window.devicePixelRatio || 1;
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        ctx.scale(dpr, dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+    }
+
+    /**
+     * INPUT
+     */
+    canvas.addEventListener('mousedown', (e) => handleInputFocus(e.clientX, e.clientY));
+    canvas.addEventListener('touchstart', (e) => {
+        handleInputFocus(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive: false});
+
+    function handleInputFocus(x, y) {
+        if (gameState !== STATE.PLAYING) return;
+        // Hitbox for input area
+        if (Math.abs(y - (height/2 + 60)) < 60) hiddenInput.focus();
+    }
+
+    mainBtn.addEventListener('click', () => {
+        if (gameState !== STATE.PLAYING) startGame();
+    });
+
+    hiddenInput.addEventListener('input', (e) => {
+        if (gameState !== STATE.PLAYING) { hiddenInput.value = ''; return; }
+
+        const valStr = e.target.value;
+        const valNum = parseInt(valStr);
+        const correctVal = currentLetter.charCodeAt(0) - 64;
+
+        if (isNaN(valNum)) return;
+
+        if (valNum === correctVal) {
+            triggerSuccess();
+        } else if ((valStr.length >= 2 && valNum !== correctVal) || 
+                   (correctVal < 10 && valStr.length === 1 && valNum !== correctVal) || 
+                   (valNum > 26)) {
+            triggerFail(correctVal);
         }
     });
 
+    /**
+     * GAME LOGIC
+     */
     function startGame() {
-        startScreen.classList.add('hidden');
-        gameContainer.classList.remove('hidden');
-        timerUI.classList.remove('hidden');
+        gameState = STATE.PLAYING;
+        currentStreak = 0;
+        mainBtn.classList.remove('visible');
+        hiddenInput.value = '';
+        hiddenInput.focus();
         generateLetter();
-    }
-
-    function startTimer() {
-        const startTime = Date.now();
-        const totalLength = 113; 
-        
-        timerPath.style.stroke = "var(--primary)";
-        timerPath.style.strokeDashoffset = 0;
-        timerText.innerText = Math.ceil(TIME_LIMIT_MS / 1000);
-        
-        clearInterval(timerInterval);
-
-        timerInterval = setInterval(() => {
-            const elapsed = Date.now() - startTime;
-            timeLeft = Math.max(0, TIME_LIMIT_MS - elapsed);
-            
-            timerText.innerText = Math.ceil(timeLeft / 1000);
-            
-            const offset = (elapsed / TIME_LIMIT_MS) * totalLength;
-            timerPath.style.strokeDashoffset = offset;
-            
-            if (timeLeft < 1000) {
-                timerPath.style.stroke = "var(--error)";
-            }
-
-            if (timeLeft <= 0) {
-                clearInterval(timerInterval);
-                handleTimeout();
-            }
-        }, 30);
-    }
-
-    function stopTimer() {
-        clearInterval(timerInterval);
-    }
-
-    function handleTimeout() {
-        if (isProcessing) return;
-        isProcessing = true;
-        
-        stopTimer();
-        userInput.blur(); // Hide keyboard to see modal
-        
-        const correctVal = currentLetter.charCodeAt(0) - 64;
-        
-        letterDisplay.style.color = "var(--error)";
-        messageEl.innerText = `Time's Up! It was ${correctVal}`;
-        messageEl.style.color = "var(--error)";
-        
-        finalScoreDisplay.innerText = currentStreak;
-        modal.style.display = 'flex';
-        
-        setTimeout(() => {
-            modal.classList.add('show');
-            restartBtn.focus();
-        }, 10);
-    }
-    
-    function restartGame() {
-        modal.classList.remove('show');
-        setTimeout(() => {
-            modal.style.display = 'none';
-            currentStreak = 0;
-            updateStats();
-            generateLetter();
-        }, 200);
     }
 
     function generateLetter() {
         let randomNum = Math.floor(Math.random() * 26);
         let newLetter = String.fromCharCode(65 + randomNum);
-        
         while (newLetter === currentLetter) {
             randomNum = Math.floor(Math.random() * 26);
             newLetter = String.fromCharCode(65 + randomNum);
         }
-        
         currentLetter = newLetter;
-        
-        letterDisplay.innerText = currentLetter;
-        letterDisplay.style.color = "var(--text)";
-        letterDisplay.classList.remove('bounce');
-        userInput.value = '';
-        messageEl.innerText = '';
-        userInput.focus();
-        isProcessing = false;
-        
-        startTimer();
+        timeLeft = TIME_LIMIT;
+        hiddenInput.value = '';
+        letterScale = 0.5; // Start small for pop-in
+        messageText = "";
     }
 
-    function checkAnswer() {
-        if (isProcessing) return;
-        
-        const userVal = parseInt(userInput.value);
-        const correctVal = currentLetter.charCodeAt(0) - 64;
-
-        if (isNaN(userVal)) {
-            messageEl.innerText = "Type a number!";
-            messageEl.style.color = "var(--text-light)";
-            return;
-        }
-
-        stopTimer();
-        isProcessing = true;
-
-        if (userVal === correctVal) {
-            handleSuccess();
-        } else {
-            handleFailure(correctVal);
-        }
-    }
-
-    function handleSuccess() {
-        letterDisplay.style.color = "var(--success)";
-        letterDisplay.classList.add('bounce');
-        messageEl.innerText = getRandomPraise();
-        messageEl.style.color = "var(--success)";
-        
+    function triggerSuccess() {
         currentStreak++;
         if (currentStreak > highScore) {
             highScore = currentStreak;
-            localStorage.setItem('alphabet-high-score', highScore);
+            localStorage.setItem('canvas-alpha-score', highScore);
         }
-        updateStats();
-
-        setTimeout(() => {
-            letterDisplay.classList.remove('bounce');
-        }, 500);
-
-        setTimeout(generateLetter, 600);
+        createParticles(width/2, height/2, COLORS.success);
+        generateLetter();
     }
 
-    function handleFailure(correctAnswer) {
-        letterDisplay.style.color = "var(--error)";
-        messageEl.innerText = `Wrong! ${currentLetter} is ${correctAnswer}`;
-        messageEl.style.color = "var(--error)";
+    function triggerFail(correctAnswer) {
+        messageText = `${currentLetter} is ${correctAnswer}`;
+        messageColor = COLORS.error;
+        endGame();
+    }
+
+    function endGame() {
+        gameState = STATE.GAMEOVER;
+        mainBtn.innerText = "PLAY AGAIN";
+        mainBtn.classList.add('visible');
+        hiddenInput.blur();
+    }
+
+    /**
+     * PARTICLES
+     */
+    function createParticles(x, y, color) {
+        for(let i=0; i<15; i++) {
+            particles.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 12,
+                vy: (Math.random() - 0.5) * 12,
+                life: 1.0,
+                color: Math.random() > 0.5 ? color : COLORS.ink, // Mix with black confetti
+                size: Math.random() * 8 + 4,
+                type: Math.random() > 0.5 ? 'rect' : 'circle',
+                rotation: Math.random() * Math.PI
+            });
+        }
+    }
+
+    function updateAndDrawParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx; p.y += p.vy;
+            p.life -= 0.04;
+            p.rotation += 0.1;
+            
+            if (p.life <= 0) { particles.splice(i, 1); continue; }
+
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            
+            if (p.type === 'rect') {
+                ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+            } else {
+                ctx.beginPath();
+                ctx.arc(0, 0, p.size/2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+        ctx.globalAlpha = 1.0;
+    }
+
+    /**
+     * DRAWING - ARTISTIC STYLE
+     */
+    function drawBackground() {
+        // 1. Paper texture / Grid
+        ctx.fillStyle = COLORS.bg;
+        ctx.fillRect(0, 0, width, height);
+
+        // Draw Grid
+        ctx.strokeStyle = COLORS.grid;
+        ctx.lineWidth = 1;
+        const gridSize = 40;
+        ctx.beginPath();
+        for(let x=0; x<width; x+=gridSize) { ctx.moveTo(x,0); ctx.lineTo(x,height); }
+        for(let y=0; y<height; y+=gridSize) { ctx.moveTo(0,y); ctx.lineTo(width,y); }
+        ctx.stroke();
+
+        // 2. Floating Typographic Elements
+        ctx.save();
+        backgroundElements.forEach(el => {
+            el.x += el.vx; el.y += el.vy;
+            el.rotation += el.vRot;
+            
+            // Wrap around screen
+            if (el.x < -100) el.x = width + 100;
+            if (el.x > width + 100) el.x = -100;
+            if (el.y < -100) el.y = height + 100;
+            if (el.y > height + 100) el.y = -100;
+
+            ctx.translate(el.x, el.y);
+            ctx.rotate(el.rotation);
+            ctx.fillStyle = COLORS.ink;
+            ctx.globalAlpha = el.opacity;
+            ctx.font = `bold ${el.size}px sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(el.char, 0, 0);
+            ctx.rotate(-el.rotation);
+            ctx.translate(-el.x, -el.y);
+        });
+        ctx.restore();
+        ctx.globalAlpha = 1.0;
+    }
+
+    function drawHardShadowRect(x, y, w, h) {
+        // Hard Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        ctx.fillRect(x + 10, y + 10, w, h);
         
-        container.classList.add('shake');
-        setTimeout(() => {
-            container.classList.remove('shake');
-        }, 500);
-
-        currentStreak = 0;
-        updateStats();
+        // Main Box
+        ctx.fillStyle = COLORS.card;
+        ctx.fillRect(x, y, w, h);
         
-        userInput.value = '';
+        // Stroke
+        ctx.strokeStyle = COLORS.ink;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, w, h);
+    }
+
+    function drawGame(dt) {
+        const cardW = Math.min(width * 0.85, 380);
+        const cardH = 480;
+        const cardX = (width - cardW) / 2;
+        const cardY = (height - cardH) / 2;
+        const cx = width / 2;
+        const cy = height / 2;
+
+        drawHardShadowRect(cardX, cardY, cardW, cardH);
+
+        // Stats Header
+        ctx.font = "bold 12px 'Courier New', monospace";
+        ctx.fillStyle = "#888"; // Lighter grey for labels
+        ctx.textAlign = "center";
+        ctx.fillText("STREAK", cx - 70, cardY + 50);
+        ctx.fillText("BEST", cx + 70, cardY + 50);
+
+        ctx.font = "bold 24px sans-serif";
+        ctx.fillStyle = COLORS.ink;
+        ctx.fillText(currentStreak, cx - 70, cardY + 75);
+        ctx.fillText(highScore, cx + 70, cardY + 75);
+
+        // Timer Ring
+        const radius = 60;
+        const progress = Math.max(0, timeLeft / TIME_LIMIT);
         
-        setTimeout(() => {
-             generateLetter();
-        }, 2000);
+        // Timer Background Ring
+        ctx.beginPath();
+        ctx.arc(cx, cy - 30, radius + 15, 0, Math.PI*2);
+        ctx.strokeStyle = "#eee";
+        ctx.lineWidth = 10;
+        ctx.stroke();
+
+        // Timer Active Ring
+        ctx.beginPath();
+        ctx.arc(cx, cy - 30, radius + 15, -Math.PI/2, -Math.PI/2 + (Math.PI*2 * progress));
+        ctx.strokeStyle = progress < 0.25 ? COLORS.error : COLORS.accent;
+        ctx.lineWidth = 10;
+        ctx.stroke();
+
+        // Decorative Ticks on Timer
+        ctx.save();
+        ctx.translate(cx, cy-30);
+        ctx.strokeStyle = COLORS.ink;
+        ctx.lineWidth = 2;
+        for(let i=0; i<12; i++) {
+            ctx.rotate(Math.PI/6);
+            ctx.beginPath();
+            ctx.moveTo(0, radius + 22);
+            ctx.lineTo(0, radius + 26);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // The Letter
+        ctx.save();
+        ctx.translate(cx, cy - 30);
+        ctx.scale(letterScale, letterScale);
+        ctx.font = "900 100px sans-serif"; // Heavier weight
+        ctx.fillStyle = COLORS.ink;
+        ctx.textBaseline = "middle";
+        ctx.fillText(currentLetter, 0, 5);
+        ctx.restore();
+
+        // Input Line
+        const boxY = cy + 80;
+        ctx.beginPath();
+        ctx.moveTo(cx - 50, boxY + 20);
+        ctx.lineTo(cx + 50, boxY + 20);
+        ctx.strokeStyle = document.activeElement === hiddenInput ? COLORS.accent : '#CCC';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // User Input
+        ctx.font = "bold 40px 'Courier New', monospace";
+        ctx.fillStyle = COLORS.ink;
+        ctx.fillText(hiddenInput.value, cx, boxY + 10);
+
+        // Feedback Text
+        if (messageText) {
+            ctx.font = "bold 16px sans-serif";
+            ctx.fillStyle = messageColor;
+            ctx.fillText(messageText, cx, boxY + 50);
+        } else {
+             // Subtle hint
+             ctx.font = "italic 14px serif";
+             ctx.fillStyle = "#AAA";
+             ctx.fillText("type value...", cx, boxY + 50);
+        }
     }
 
-    function updateStats() {
-        streakEl.innerText = currentStreak;
-        highScoreEl.innerText = highScore;
-    }
-
-    function showHint() {
-        const val = currentLetter.charCodeAt(0) - 64;
-        let hint = "";
+    function drawMenu() {
+        const cx = width / 2;
+        const cy = height / 2;
+        const cardW = Math.min(width * 0.85, 380);
+        const cardH = 400;
         
-        if (["E", "J", "O", "T", "Y"].includes(currentLetter)) hint = "Part of EJOTY (Multiples of 5)";
-        else if (currentLetter === "F") hint = "F sounds like Fix (6)";
-        else if (currentLetter === "G") hint = "Look at the tail (It draws a 7)";
-        else if (currentLetter === "H") hint = "Connect top and bottom (It becomes 8)";
-        else if (currentLetter === "I") hint = "Cursive I looks like 9";
-        else if (currentLetter === "K") hint = "Kings XI or two straight lines (11)";
-        else if (currentLetter === "L") hint = "L is for Lunch at 12";
-        else if (currentLetter === "M") hint = "Rotate 90° clockwise (Looks like 3 → 13)";
-        else if (currentLetter === "N") hint = "November 14 (Children's Day)";
-        else if (currentLetter === "P") hint = "Inverted 6 (16)";
-        else if (currentLetter === "Q") hint = "Question 17 or Queen";
-        else if (currentLetter === "R") hint = "Close the bottom loop (Becomes 8 → 18)";
-        else if (currentLetter === "S") hint = "Before T-20 (19)";
-        else if (currentLetter === "U") hint = "Under 21";
-        else if (currentLetter === "V") hint = "Victory sign (2 fingers → 22)";
-        else if (currentLetter === "W") hint = "Rotate 90° counter-clockwise (Looks like 3 → 23)";
-        else if (val <= 13) hint = "It's in the first half (1-13)";
-        else hint = "It's in the second half (14-26)";
+        drawHardShadowRect((width - cardW)/2, (height - cardH)/2, cardW, cardH);
 
-        messageEl.innerText = hint;
-        messageEl.style.color = "var(--text-light)";
-        userInput.focus();
+        ctx.fillStyle = COLORS.ink;
+        ctx.font = "900 32px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("ALPHABET", cx, cy - 60);
+        ctx.fillStyle = COLORS.accent;
+        ctx.fillText("MASTERY", cx, cy - 25);
+
+        ctx.font = "16px 'Courier New', monospace";
+        ctx.fillStyle = "#666";
+        ctx.fillText("A=1  B=2  ...  Z=26", cx, cy + 20);
+        
+        mainBtn.classList.add('visible');
+        mainBtn.innerText = "START";
     }
-    
-    function getRandomPraise() {
-        const praises = ["Correct!", "Nice!", "Spot on!", "Great!", "Fast!", "Perfect!"];
-        return praises[Math.floor(Math.random() * praises.length)];
+
+    function drawGameOver() {
+        const cx = width / 2;
+        const cy = height / 2;
+        const cardW = Math.min(width * 0.85, 380);
+        const cardH = 450;
+
+        drawHardShadowRect((width - cardW)/2, (height - cardH)/2, cardW, cardH);
+
+        ctx.fillStyle = COLORS.error;
+        ctx.font = "900 36px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("TIME'S UP", cx, cy - 80);
+
+        ctx.fillStyle = COLORS.ink;
+        ctx.font = "bold 14px 'Courier New', monospace";
+        ctx.fillText("FINAL SCORE", cx, cy - 40);
+
+        ctx.font = "900 80px sans-serif";
+        ctx.fillStyle = COLORS.ink;
+        ctx.fillText(currentStreak, cx, cy + 30);
+        
+        // Hint at correct answer if lost
+        if (messageText) {
+            ctx.font = "bold 16px sans-serif";
+            ctx.fillStyle = COLORS.error;
+            ctx.fillText(messageText, cx, cy + 70);
+        }
+
+        mainBtn.classList.add('visible');
+        mainBtn.innerText = "RETRY";
     }
+
+    function loop(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const dt = timestamp - lastTime;
+        lastTime = timestamp;
+
+        drawBackground();
+
+        if (gameState === STATE.PLAYING) {
+            timeLeft -= dt;
+            if (timeLeft <= 0) { timeLeft = 0; triggerFail(currentLetter.charCodeAt(0) - 64); }
+            if (letterScale < 1) { letterScale += 0.08; if (letterScale > 1) letterScale = 1; }
+            drawGame(dt);
+        } else if (gameState === STATE.MENU) {
+            drawMenu();
+        } else if (gameState === STATE.GAMEOVER) {
+            drawGameOver();
+        }
+
+        updateAndDrawParticles();
+        requestAnimationFrame(loop);
+    }
+
+    // Start
+    init();
+
 </script>
-
 </body>
 </html>
