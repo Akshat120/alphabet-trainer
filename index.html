@@ -13,6 +13,9 @@
             font-family: 'Courier New', Courier, monospace; 
             /* Prevent iOS tap highlight */
             -webkit-tap-highlight-color: transparent;
+            /* Prevent text selection which can trigger context menus */
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         /* FIXED: Position input within viewport to prevent scroll jumps on focus */
@@ -22,10 +25,13 @@
             left: 0;
             width: 1px;
             height: 1px;
-            opacity: 0;
+            opacity: 0.01; /* Non-zero opacity ensures focusability on some Androids */
             font-size: 16px; /* Prevent iOS zoom */
             pointer-events: none; /* Let touches pass through to canvas */
             z-index: -1;
+            border: none;
+            outline: none;
+            background: transparent;
         }
 
         #ui-layer {
@@ -33,7 +39,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
+            height: 100dvh; /* Use dynamic viewport height for mobile browsers */
             pointer-events: none;
             display: flex;
             flex-direction: column;
@@ -254,10 +260,13 @@
 
     canvas.addEventListener('mousedown', triggerFocus);
     canvas.addEventListener('touchstart', (e) => {
-        // Prevent default zoom or scroll on game area
-        // e.preventDefault(); 
         triggerFocus(e);
     }, {passive: false});
+
+    // Prevent context menu (Paste/Select) on canvas to keep game immersion
+    window.addEventListener('contextmenu', (e) => {
+        if(e.target === canvas) e.preventDefault();
+    });
 
     // Button Listeners
     btnMode1.addEventListener('click', () => startGame(MODES.MULT));
@@ -511,7 +520,15 @@
         const fitScale = getFitScale();
         
         ctx.save();
-        ctx.translate(width / 2, height / 2);
+        
+        // Center shift for keyboard: 
+        // If height is small (< 450px), bias the center upwards to keep input line visible above keyboard
+        let centerY = height / 2;
+        if (height < 450) {
+            centerY = height * 0.4; 
+        }
+
+        ctx.translate(width / 2, centerY);
         ctx.scale(fitScale, fitScale);
         
         // Define Card Size relative to this centered, scaled context
