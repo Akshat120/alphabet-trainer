@@ -15,12 +15,17 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* FIXED: Position input within viewport to prevent scroll jumps on focus */
         #hidden-input {
-            position: absolute;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 1px;
             opacity: 0;
-            top: -1000px;
-            left: -1000px; 
-            font-size: 16px; 
+            font-size: 16px; /* Prevent iOS zoom */
+            pointer-events: none; /* Let touches pass through to canvas */
+            z-index: -1;
         }
 
         #ui-layer {
