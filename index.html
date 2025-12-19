@@ -101,12 +101,14 @@
         
         /* Game Over buttons */
         .game-over-btns {
-            /* Position below score */
-            margin-top: 15vh;
+            /* Positioned relative to center. 
+               Since we moved canvas text up, we can place these just below center. */
+            margin-top: 80px; 
             display: none;
             flex-direction: column;
             gap: 15px;
             pointer-events: auto;
+            transform-origin: center top;
         }
         .game-over-btns.visible { display: flex; }
 
@@ -115,13 +117,15 @@
             .btn { min-width: 220px; padding: 0.7rem 1rem; font-size: 0.9rem; }
             /* Increased margin-top to clear title text */
             .menu-container { margin-top: 18vh; gap: 10px; } 
-            .game-over-btns { margin-top: 12vh; }
+            
+            /* Tweak game over buttons for smaller screens */
+            .game-over-btns { margin-top: 60px; zoom: 0.9; }
         }
 
         /* Short screens (Landscape or small phones) */
         @media (max-height: 600px) {
             .menu-container { margin-top: 15vh; gap: 8px; zoom: 0.85; }
-            .game-over-btns { margin-top: 10vh; zoom: 0.85; }
+            .game-over-btns { margin-top: 50px; zoom: 0.85; }
         }
     </style>
 </head>
@@ -695,24 +699,25 @@
 
         drawHardShadowRect(-cardW/2, -cardH/2, cardW, cardH);
 
+        // MOVED CANVAS TEXT UP to make room for HTML buttons
         ctx.fillStyle = COLORS.error;
         ctx.font = "900 36px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("TIME'S UP", 0, -150);
+        ctx.fillText("TIME'S UP", 0, -190);
 
         ctx.fillStyle = COLORS.ink;
         ctx.font = "bold 14px 'Courier New', monospace";
-        ctx.fillText("FINAL SCORE", 0, -110);
+        ctx.fillText("FINAL SCORE", 0, -150);
 
         // Also remove bold from final score
         ctx.font = "90px sans-serif";
         ctx.fillStyle = COLORS.ink;
-        ctx.fillText(currentStreak, 0, -20);
+        ctx.fillText(currentStreak, 0, -70);
         
         if (messageText) {
             ctx.font = "bold 26px sans-serif";
             ctx.fillStyle = COLORS.error;
-            ctx.fillText(messageText, 0, 40);
+            ctx.fillText(messageText, 0, 0); // Moved up to 0 from 40
         }
         
         ctx.restore();
