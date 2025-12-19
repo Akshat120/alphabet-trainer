@@ -341,11 +341,14 @@
         btnRetry.classList.remove('visible');
         btnMenu.classList.remove('visible');
         
-        // Small timeout ensures the keyboard has time to trigger on mobile after touch
+        // Force focus immediately to capture user gesture (essential for iOS)
+        hiddenInput.value = '';
+        hiddenInput.focus();
+        
+        // Double-check focus after a short delay for stability
         setTimeout(() => {
-            hiddenInput.value = '';
             hiddenInput.focus();
-        }, 50); // Increased to 50ms for better reliability
+        }, 50);
         
         generateProblem();
     }
