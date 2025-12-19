@@ -118,7 +118,8 @@
 
     <canvas id="gameCanvas"></canvas>
     <!-- Prevent zoom on input focus -->
-    <input type="number" id="hidden-input" pattern="[0-9]*" inputmode="numeric" style="font-size: 16px;">
+    <!-- Changed type to "tel" for robust numeric keypad on all devices -->
+    <input type="tel" id="hidden-input" pattern="[0-9]*" inputmode="numeric" style="font-size: 16px;" autocomplete="off">
     
     <div id="ui-layer">
         <!-- Main Menu Buttons -->
@@ -265,13 +266,21 @@
     hiddenInput.addEventListener('input', (e) => {
         if (gameState !== STATE.PLAYING) { hiddenInput.value = ''; return; }
 
-        const valStr = e.target.value;
+        // Sanitize input to ensure only numbers (fixes some mobile keyboard issues)
+        let valStr = e.target.value.replace(/[^0-9]/g, '');
+        
+        // Update input if sanitation occurred
+        if (valStr !== e.target.value) {
+            hiddenInput.value = valStr;
+        }
+
         const valNum = parseInt(valStr);
         const ansStr = currentAnswer.toString();
 
-        if (isNaN(valNum) && valStr !== '') {
-            hiddenInput.value = '';
-            return;
+        if (isNaN(valNum)) {
+             // Allow empty string to sit there, otherwise clear invalid
+             if (valStr !== '') hiddenInput.value = '';
+             return;
         }
 
         if (valNum === currentAnswer) {
@@ -318,7 +327,7 @@
         setTimeout(() => {
             hiddenInput.value = '';
             hiddenInput.focus();
-        }, 10);
+        }, 50); // Increased to 50ms for better reliability
         
         generateProblem();
     }
@@ -470,7 +479,8 @@
             ctx.rotate(el.rotation);
             ctx.fillStyle = COLORS.ink;
             ctx.globalAlpha = el.opacity;
-            ctx.font = `bold ${el.size}px sans-serif`; 
+            // Removed bold here
+            ctx.font = `${el.size}px sans-serif`; 
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(el.char, 0, 0);
@@ -515,13 +525,14 @@
         ctx.fillText("STREAK", cx - 90, cy - 200);
         ctx.fillText("BEST", cx + 90, cy - 200);
 
-        ctx.font = "bold 30px sans-serif";
+        // Removed bold from stats
+        ctx.font = "30px sans-serif";
         ctx.fillStyle = COLORS.ink;
         ctx.fillText(currentStreak, cx - 90, cy - 170);
         ctx.fillText(highScores[currentMode], cx + 90, cy - 170);
 
         // Timer Ring
-        const radius = 120; 
+        const radius = 110; 
         const progress = Math.max(0, timeLeft / TIME_LIMIT);
         
         ctx.beginPath();
@@ -543,9 +554,10 @@
         ctx.textBaseline = "middle";
         ctx.fillStyle = COLORS.ink;
 
-        const numberFont = "900 65px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-        const opFont = "500 55px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"; 
-        const alphaFont = "900 120px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        // Removed weights (900 -> 400)
+        const numberFont = "400 60px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        const opFont = "400 50px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"; 
+        const alphaFont = "400 120px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
         if (problemParts.type === "standard") {
             ctx.font = numberFont;
@@ -567,16 +579,23 @@
         } else if (problemParts.type === "power") {
             ctx.font = numberFont;
             const w1 = ctx.measureText(problemParts.part1).width;
-            const superFont = "900 40px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+            // Removed bold and changed drawing logic
+            const superFont = "400 40px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
             ctx.font = superFont;
             const wOp = ctx.measureText(problemParts.op).width;
-            const totalW = w1 + wOp;
+            
+            // Adjusted gap calculations
+            const gap = -5; // Negative gap to pull closer
+            const totalW = w1 + gap + wOp;
             const startX = -totalW / 2;
 
             ctx.textAlign = "left";
+            ctx.font = numberFont;
             ctx.fillText(problemParts.part1, startX, 4);
+            
             ctx.font = superFont;
-            ctx.fillText(problemParts.op, startX + w1, -20);
+            // Moved closer (gap) and adjusted y-offset
+            ctx.fillText(problemParts.op, startX + w1 + gap, -35);
         
         } else if (problemParts.type === "alpha") {
             ctx.font = alphaFont;
@@ -663,7 +682,8 @@
         ctx.font = "bold 14px 'Courier New', monospace";
         ctx.fillText("FINAL SCORE", 0, -110);
 
-        ctx.font = "900 90px sans-serif";
+        // Also remove bold from final score
+        ctx.font = "90px sans-serif";
         ctx.fillStyle = COLORS.ink;
         ctx.fillText(currentStreak, 0, -20);
         
